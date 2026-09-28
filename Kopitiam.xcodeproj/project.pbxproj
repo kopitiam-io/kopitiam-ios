@@ -1,0 +1,378 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		004F76B99385BC0E16D90E67 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FFB51FE3B88FA36211723E5 /* HomeView.swift */; };
+		01D96A4950ABC33F01777D8B /* GroupABScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B56E03D95C27FF93F120A45 /* GroupABScreens.swift */; };
+		0602DD313E74700D7480707B /* RedactCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46E32A2094E28B8676D2D8DD /* RedactCanvas.swift */; };
+		34FD27C8D3DD023B4FC3BAA3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 08C79738686D3C00B40ADBA1 /* Assets.xcassets */; };
+		3BA0291C5BCE45862E67E8AB /* ToolRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 611A8CA1C81F8A51AA67179A /* ToolRegistry.swift */; };
+		3EC8047523ABC5D2F508EB42 /* HouseAd.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C96E71D8D260A95ED8EC17 /* HouseAd.swift */; };
+		64B26DAD137FCA93F88E7FF0 /* PerspectiveRefineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42AF6ED046A5E84E35DF3E8B /* PerspectiveRefineView.swift */; };
+		8839301483CDF128B29B82AE /* PDFEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9775622A158F3AC3B250055 /* PDFEngine.swift */; };
+		8DA6077ABDEEB98091536A06 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD74C403C99616EC202EB9D0 /* Components.swift */; };
+		AEB9C5CAA2C0E52004ECFAE4 /* ToolScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49AF2514C999EE33F2006569 /* ToolScreens.swift */; };
+		B2F8AECDD03F743522117C33 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5986FD357BDEF5F63424C503 /* Theme.swift */; };
+		B3FAD7B0A6F6E8F5DE44EB0A /* ScanFilters.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87CB44244D395948BC85EED /* ScanFilters.swift */; };
+		B7A0AB4357344D8886928D80 /* KopitiamApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7544BBBE7CE2B2D72B04DD9F /* KopitiamApp.swift */; };
+		BFE63E0261A3A2E3B5A07221 /* ConvertEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F99FC00204A64ACC327312E /* ConvertEngine.swift */; };
+		C3DB3452CF1769A2B9A348AC /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1248E42CB1E65E6837C00276 /* EditorView.swift */; };
+		C9B146D1521832BFEF7AC272 /* ScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CAAE9985AB25BCD3B02F393 /* ScannerView.swift */; };
+		D2DA4821D1300FE4EE687689 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A4E5AC299DE314EA3422EE7 /* OCREngine.swift */; };
+		E37C47543B302975B4C514B7 /* ZipWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 767883761277FAD27B278557 /* ZipWriter.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		08C79738686D3C00B40ADBA1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1248E42CB1E65E6837C00276 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
+		3FFB51FE3B88FA36211723E5 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		42AF6ED046A5E84E35DF3E8B /* PerspectiveRefineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerspectiveRefineView.swift; sourceTree = "<group>"; };
+		46E32A2094E28B8676D2D8DD /* RedactCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactCanvas.swift; sourceTree = "<group>"; };
+		49AF2514C999EE33F2006569 /* ToolScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolScreens.swift; sourceTree = "<group>"; };
+		50C96E71D8D260A95ED8EC17 /* HouseAd.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseAd.swift; sourceTree = "<group>"; };
+		5986FD357BDEF5F63424C503 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		5A4E5AC299DE314EA3422EE7 /* OCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCREngine.swift; sourceTree = "<group>"; };
+		5CAAE9985AB25BCD3B02F393 /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
+		611A8CA1C81F8A51AA67179A /* ToolRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolRegistry.swift; sourceTree = "<group>"; };
+		7544BBBE7CE2B2D72B04DD9F /* KopitiamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KopitiamApp.swift; sourceTree = "<group>"; };
+		767883761277FAD27B278557 /* ZipWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipWriter.swift; sourceTree = "<group>"; };
+		8F99FC00204A64ACC327312E /* ConvertEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertEngine.swift; sourceTree = "<group>"; };
+		9B56E03D95C27FF93F120A45 /* GroupABScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupABScreens.swift; sourceTree = "<group>"; };
+		A87CB44244D395948BC85EED /* ScanFilters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanFilters.swift; sourceTree = "<group>"; };
+		AD74C403C99616EC202EB9D0 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		C9775622A158F3AC3B250055 /* PDFEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFEngine.swift; sourceTree = "<group>"; };
+		D2FAEEBC5E779B412D4C30CE /* Kopitiam.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kopitiam.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FFCCF031B5A4A17FEE8C612C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		29DD094AE5DC10553E709D03 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				08C79738686D3C00B40ADBA1 /* Assets.xcassets */,
+				AD74C403C99616EC202EB9D0 /* Components.swift */,
+				8F99FC00204A64ACC327312E /* ConvertEngine.swift */,
+				1248E42CB1E65E6837C00276 /* EditorView.swift */,
+				9B56E03D95C27FF93F120A45 /* GroupABScreens.swift */,
+				3FFB51FE3B88FA36211723E5 /* HomeView.swift */,
+				50C96E71D8D260A95ED8EC17 /* HouseAd.swift */,
+				FFCCF031B5A4A17FEE8C612C /* Info.plist */,
+				7544BBBE7CE2B2D72B04DD9F /* KopitiamApp.swift */,
+				5A4E5AC299DE314EA3422EE7 /* OCREngine.swift */,
+				C9775622A158F3AC3B250055 /* PDFEngine.swift */,
+				42AF6ED046A5E84E35DF3E8B /* PerspectiveRefineView.swift */,
+				46E32A2094E28B8676D2D8DD /* RedactCanvas.swift */,
+				A87CB44244D395948BC85EED /* ScanFilters.swift */,
+				5CAAE9985AB25BCD3B02F393 /* ScannerView.swift */,
+				5986FD357BDEF5F63424C503 /* Theme.swift */,
+				611A8CA1C81F8A51AA67179A /* ToolRegistry.swift */,
+				49AF2514C999EE33F2006569 /* ToolScreens.swift */,
+				767883761277FAD27B278557 /* ZipWriter.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		C9547797CDD037B6624341BA = {
+			isa = PBXGroup;
+			children = (
+				29DD094AE5DC10553E709D03 /* Sources */,
+				EA381766645FA5C002E9D776 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EA381766645FA5C002E9D776 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D2FAEEBC5E779B412D4C30CE /* Kopitiam.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA903C809EAFAF004F305619 /* Kopitiam */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7527F8EE91E5DF93CEFEF1B3 /* Build configuration list for PBXNativeTarget "Kopitiam" */;
+			buildPhases = (
+				F6F6D3FD077E2265D2810245 /* Sources */,
+				F68E5EC3C4CB08BA412EDF54 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Kopitiam;
+			packageProductDependencies = (
+			);
+			productName = Kopitiam;
+			productReference = D2FAEEBC5E779B412D4C30CE /* Kopitiam.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FFEDAFF138AD667ABF82D597 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					AA903C809EAFAF004F305619 = {
+						DevelopmentTeam = "";
+					};
+				};
+			};
+			buildConfigurationList = B416A4EFABC30062B04FB498 /* Build configuration list for PBXProject "Kopitiam" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C9547797CDD037B6624341BA;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = EA381766645FA5C002E9D776 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA903C809EAFAF004F305619 /* Kopitiam */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F68E5EC3C4CB08BA412EDF54 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				34FD27C8D3DD023B4FC3BAA3 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F6F6D3FD077E2265D2810245 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8DA6077ABDEEB98091536A06 /* Components.swift in Sources */,
+				BFE63E0261A3A2E3B5A07221 /* ConvertEngine.swift in Sources */,
+				C3DB3452CF1769A2B9A348AC /* EditorView.swift in Sources */,
+				01D96A4950ABC33F01777D8B /* GroupABScreens.swift in Sources */,
+				004F76B99385BC0E16D90E67 /* HomeView.swift in Sources */,
+				3EC8047523ABC5D2F508EB42 /* HouseAd.swift in Sources */,
+				B7A0AB4357344D8886928D80 /* KopitiamApp.swift in Sources */,
+				D2DA4821D1300FE4EE687689 /* OCREngine.swift in Sources */,
+				8839301483CDF128B29B82AE /* PDFEngine.swift in Sources */,
+				64B26DAD137FCA93F88E7FF0 /* PerspectiveRefineView.swift in Sources */,
+				0602DD313E74700D7480707B /* RedactCanvas.swift in Sources */,
+				B3FAD7B0A6F6E8F5DE44EB0A /* ScanFilters.swift in Sources */,
+				C9B146D1521832BFEF7AC272 /* ScannerView.swift in Sources */,
+				B2F8AECDD03F743522117C33 /* Theme.swift in Sources */,
+				3BA0291C5BCE45862E67E8AB /* ToolRegistry.swift in Sources */,
+				AEB9C5CAA2C0E52004ECFAE4 /* ToolScreens.swift in Sources */,
+				E37C47543B302975B4C514B7 /* ZipWriter.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		218BB09ADFACBEFC9D247F31 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		25A3229394B8FA6C8D66EBD8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.kopitiam.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A21198CA1B002E9E6CBA0546 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		C9CF9806374DE7D3A39B8CD9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.kopitiam.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7527F8EE91E5DF93CEFEF1B3 /* Build configuration list for PBXNativeTarget "Kopitiam" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				25A3229394B8FA6C8D66EBD8 /* Debug */,
+				C9CF9806374DE7D3A39B8CD9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B416A4EFABC30062B04FB498 /* Build configuration list for PBXProject "Kopitiam" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				218BB09ADFACBEFC9D247F31 /* Debug */,
+				A21198CA1B002E9E6CBA0546 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = FFEDAFF138AD667ABF82D597 /* Project object */;
+}
