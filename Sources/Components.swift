@@ -44,7 +44,7 @@ struct ToolCard: View {
             HStack {
                 Image(systemName: tool.symbol)
                     .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(kopi.brand)
+                    .foregroundStyle(kopi.accent)
                     .frame(width: 44, height: 44)
                 Spacer()
                 if tool.comingSoon {

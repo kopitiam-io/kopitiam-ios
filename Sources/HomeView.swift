@@ -64,6 +64,8 @@ struct HomeView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Space.sm) {
+            NyonyaTileBand()
+                .padding(.bottom, Space.xs)
             Text("Kopitiam")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(kopi.accent)
