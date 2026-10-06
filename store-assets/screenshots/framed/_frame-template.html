@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --jade:#1f6f5c; --jade-dark:#144e40;
+    --whitewash:#f4f1e9; --stone-400:#b6afa0; --ink:#20211c; --muted:#6f6d62;
+    --nyonya-a:#1f6f5c; --nyonya-b:#c68f52; --nyonya-bg:#f4f1e9;
+  }
+  html,body{margin:0;padding:0}
+  #stage{
+    width:1290px; height:2796px; position:relative; overflow:hidden;
+    background:var(--whitewash);
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,sans-serif;
+  }
+  .serif{font-family:'Playfair Display',Georgia,'Times New Roman',serif;}
+
+  .nyonya{
+    position:absolute; left:0; right:0; height:80px;
+    background-color:var(--nyonya-bg);
+    background-image:
+      radial-gradient(circle at 50% 50%, var(--nyonya-a) 0 10px, transparent 11px),
+      linear-gradient(45deg, transparent 46%, var(--nyonya-b) 46% 54%, transparent 54%),
+      linear-gradient(-45deg, transparent 46%, var(--nyonya-b) 46% 54%, transparent 54%);
+    background-size:80px 80px;
+    opacity:0.95;
+  }
+  .nyonya.top{ top:0; border-bottom:4px solid var(--jade-dark); }
+  .nyonya.bottom{ bottom:0; border-top:4px solid var(--jade-dark); }
+
+  .caption{
+    position:absolute; left:0; right:0; top:80px; height:520px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:0 96px; box-sizing:border-box;
+  }
+  .eyebrow{
+    display:inline-block; font-size:30px; font-weight:700; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--jade);
+    padding-bottom:12px; border-bottom:4px solid var(--jade); margin-bottom:32px;
+  }
+  .headline{
+    font-weight:800; font-size:104px; line-height:0.94; letter-spacing:-0.01em;
+    color:var(--ink); margin:0;
+  }
+  .headline .muted{ color:var(--stone-400); }
+
+  /* device shot */
+  .device{
+    position:absolute; left:50%; transform:translateX(-50%);
+    top:640px; width:760px;
+    border-radius:56px; overflow:hidden;
+    border:14px solid #2a2622;
+    box-shadow:0 40px 90px rgba(32,33,28,0.28), 0 8px 24px rgba(32,33,28,0.18);
+    background:#000;
+  }
+  .device img{ display:block; width:100%; height:auto; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="nyonya top"></div>
+  <div class="caption">
+    <span class="eyebrow">__EYEBROW__</span>
+    <h1 class="serif headline">__HEADLINE__</h1>
+  </div>
+  <div class="device"><img src="data:image/png;base64,__IMG__" alt=""></div>
+  <div class="nyonya bottom"></div>
+</div>
+</body>
+</html>
