@@ -2,9 +2,13 @@ import SwiftUI
 
 @main
 struct KopitiamApp: App {
+    /// Settings -> Appearance. "system" follows the phone's light/dark setting.
+    @AppStorage("appearance") private var appearance: String = AppearanceChoice.system.rawValue
+
     var body: some Scene {
         WindowGroup {
             RootView()
+                .preferredColorScheme(AppearanceChoice(rawValue: appearance)?.colorScheme)
         }
     }
 }
@@ -52,7 +56,7 @@ struct RootView: View {
             } else if opensRefine {
                 NavigationStack { PerspectiveRefineView(autorun: true) }
             } else {
-                HomeView()
+                MainTabView()
             }
         }
         .environment(\.kopi, KopiTheme.resolve(scheme))
