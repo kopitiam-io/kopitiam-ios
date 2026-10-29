@@ -48,7 +48,7 @@ struct MainTabView: View {
     @State private var homePath: [String] = []
     @State private var filesPath: [String] = []
     @State private var toolsPath: [String] = []
-    @State private var showScanner = false
+    @State private var scanMode: ScanMode?
 
     init() {
         // Launch argument `-tab files|tools|settings` opens that tab first, for
@@ -75,13 +75,14 @@ struct MainTabView: View {
     var body: some View {
         ZStack {
             page(.home) {
-                HomeTab(path: $homePath, onShowAllTools: { tab = .tools })
+                HomeTab(path: $homePath, onShowAllTools: { tab = .tools },
+                        onShowFiles: { tab = .files }, onScan: { scanMode = $0 })
             }
             page(.files) {
-                FilesTab(path: $filesPath, onScan: { showScanner = true })
+                FilesTab(path: $filesPath, onScan: { scanMode = $0 })
             }
             page(.tools) {
-                ToolsTab(path: $toolsPath)
+                ToolsTab(path: $toolsPath, onScan: { scanMode = $0 })
             }
             page(.settings) {
                 SettingsTab()
@@ -92,18 +93,11 @@ struct MainTabView: View {
                 FlatTabBar(selected: tab, onSelect: select)
             }
         }
-        .fullScreenCover(isPresented: $showScanner) {
-            NavigationStack {
-                ScanDocumentView()
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") { showScanner = false }
-                        }
-                    }
-            }
-            .environment(\.kopi, kopi)
-            .tint(kopi.accent)
+        .fullScreenCover(item: $scanMode) { mode in
+            ScanHubView(mode: mode)
+                .environment(\.kopi, kopi)
         }
+        .onAppear { DocumentStore.shared.seedSamplesIfRequested() }
     }
 
     /// Every tab stays alive (keeping its scroll + navigation state); only the
@@ -117,7 +111,7 @@ struct MainTabView: View {
 
     private func select(_ t: AppTab) {
         if t == .scan {
-            showScanner = true
+            scanMode = .scan
         } else if t == tab {
             // Tapping the current tab again returns to its root.
             switch t {
@@ -176,6 +170,26 @@ struct FlatTabBar: View {
 struct ToolDestination: View {
     let id: String
     var body: some View {
+        if id.hasPrefix(Self.docPrefix) {
+            DocumentDetailView(documentID: String(id.dropFirst(Self.docPrefix.count)))
+        } else {
+            tool
+        }
+    }
+
+    /// Navigation value for a saved document: "doc:<file name>".
+    static let docPrefix = "doc:"
+
+    /// Route a tool id, sending the scan tools to the scan hub instead.
+    static func open(_ id: String, path: Binding<[String]>, onScan: (ScanMode) -> Void) {
+        if let mode = ScanMode(toolID: id) {
+            onScan(mode)
+        } else {
+            path.wrappedValue.append(id)
+        }
+    }
+
+    @ViewBuilder private var tool: some View {
         switch id {
         case "edit":     EditorView()
         case "merge":    MergeView()
@@ -207,9 +221,16 @@ private struct QuickItem: Identifiable {
 
 struct HomeTab: View {
     @Environment(\.kopi) private var kopi
+    @ObservedObject private var store = DocumentStore.shared
     @Binding var path: [String]
     let onShowAllTools: () -> Void
+    let onShowFiles: () -> Void
+    let onScan: (ScanMode) -> Void
     @State private var query = ""
+
+    private func open(_ id: String) {
+        ToolDestination.open(id, path: $path, onScan: onScan)
+    }
 
     private let quick: [QuickItem] = [
         QuickItem(id: "document", label: "Scan"),
@@ -233,17 +254,20 @@ struct HomeTab: View {
                                 ForEach(quick) { item in
                                     if let tool = ToolRegistry.tool(id: item.id) {
                                         RoundToolButton(tool: tool, label: item.label) {
-                                            path.append(tool.id)
+                                            open(tool.id)
                                         }
                                     }
                                 }
                                 RoundIconButton(symbol: "square.grid.2x2", label: "All tools",
                                                 tint: kopi.brand, action: onShowAllTools)
                             }
-                            AdSlotView(onOpenTool: { id in path.append(id) })
+                            if !store.documents.isEmpty {
+                                recents
+                            }
+                            AdSlotView(onOpenTool: { id in open(id) })
                                 .id("adslot")
                         } else {
-                            ToolSearchResults(query: query) { id in path.append(id) }
+                            ToolSearchResults(query: query) { id in open(id) }
                         }
                     }
                     .padding(.horizontal, Space.lg)
@@ -264,6 +288,36 @@ struct HomeTab: View {
             .background(kopi.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: String.self) { id in ToolDestination(id: id) }
+        }
+    }
+
+    /// The three newest saved documents.
+    private var recents: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            HStack {
+                Text("Recents")
+                    .font(.headline)
+                    .foregroundStyle(kopi.text)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                Button("View all", action: onShowFiles)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(kopi.accent)
+            }
+            VStack(spacing: 0) {
+                ForEach(Array(store.documents.prefix(3).enumerated()), id: \.element.id) { index, doc in
+                    if index > 0 {
+                        Divider().overlay(kopi.line).padding(.leading, 60)
+                    }
+                    Button { path.append(ToolDestination.docPrefix + doc.id) } label: {
+                        DocumentRow(doc: doc)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, Space.md)
+            .background(kopi.surface, in: RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous).strokeBorder(kopi.line))
         }
     }
 
@@ -291,7 +345,12 @@ struct HomeTab: View {
 struct ToolsTab: View {
     @Environment(\.kopi) private var kopi
     @Binding var path: [String]
+    let onScan: (ScanMode) -> Void
     @State private var query = ""
+
+    private func open(_ id: String) {
+        ToolDestination.open(id, path: $path, onScan: onScan)
+    }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -308,14 +367,14 @@ struct ToolsTab: View {
                                 LazyVGrid(columns: RoundGrid.columns, spacing: Space.md) {
                                     ForEach(ToolRegistry.tools(in: category)) { tool in
                                         RoundToolButton(tool: tool, label: tool.title) {
-                                            path.append(tool.id)
+                                            open(tool.id)
                                         }
                                     }
                                 }
                             }
                         }
                     } else {
-                        ToolSearchResults(query: query) { id in path.append(id) }
+                        ToolSearchResults(query: query) { id in open(id) }
                     }
                 }
                 .padding(.horizontal, Space.lg)
@@ -332,54 +391,71 @@ struct ToolsTab: View {
 
 // MARK: - Files tab
 
-/// Kopitiam keeps no copies of documents yet, so Files is a starting point
-/// that opens something from the phone rather than a library.
+/// Saved scans (newest first), plus ways to add more.
 struct FilesTab: View {
     @Environment(\.kopi) private var kopi
+    @ObservedObject private var store = DocumentStore.shared
     @Binding var path: [String]
-    let onScan: () -> Void
+    let onScan: (ScanMode) -> Void
+    @State private var pendingDelete: SavedDocument?
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
-                VStack(spacing: Space.lg) {
-                    VStack(spacing: Space.sm) {
-                        Image(systemName: "folder")
-                            .font(.system(size: 40, weight: .regular))
-                            .foregroundStyle(kopi.accent)
-                            .frame(width: 84, height: 84)
-                            .background(kopi.accent.opacity(0.12), in: Circle())
-                            .accessibilityHidden(true)
-                        Text("Your files stay on your phone")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(kopi.text)
-                            .multilineTextAlignment(.center)
-                        Text("Kopitiam doesn't keep copies of your documents. Open one from your phone, or scan something new.")
+            List {
+                Section {
+                    FlatRow(symbol: "camera", tint: kopi.accent, title: "Scan a document",
+                            subtitle: "Use the camera") { onScan(.scan) }
+                    FlatRow(symbol: "doc", tint: kopi.brand, title: "Open a PDF",
+                            subtitle: "Edit, sign or highlight it") { path.append("edit") }
+                    FlatRow(symbol: "photo.on.rectangle", tint: kopi.accent, title: "Turn photos into a PDF",
+                            subtitle: "Pick images from your library") { path.append("convert") }
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(kopi.surface)
+
+                Section {
+                    if store.documents.isEmpty {
+                        Text("Nothing saved yet. Scans you make are kept here, on this phone only.")
                             .font(.subheadline)
                             .foregroundStyle(kopi.textSoft)
-                            .multilineTextAlignment(.center)
+                            .listRowBackground(kopi.surface)
+                    } else {
+                        ForEach(store.documents) { doc in
+                            Button { path.append(ToolDestination.docPrefix + doc.id) } label: {
+                                DocumentRow(doc: doc)
+                            }
+                            .buttonStyle(.plain)
+                            .listRowBackground(kopi.surface)
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) { pendingDelete = doc } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
                     }
-                    .padding(.top, Space.xl)
-
-                    VStack(spacing: 0) {
-                        FlatRow(symbol: "doc", tint: kopi.brand, title: "Open a PDF",
-                                subtitle: "Edit, sign or highlight it") { path.append("edit") }
-                        Divider().overlay(kopi.line).padding(.leading, 64)
-                        FlatRow(symbol: "photo.on.rectangle", tint: kopi.accent, title: "Turn photos into a PDF",
-                                subtitle: "Pick images from your library") { path.append("convert") }
-                        Divider().overlay(kopi.line).padding(.leading, 64)
-                        FlatRow(symbol: "camera", tint: kopi.accent, title: "Scan a document",
-                                subtitle: "Use the camera", action: onScan)
-                    }
-                    .background(kopi.surface, in: RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous).strokeBorder(kopi.line))
+                } header: {
+                    Text("On this phone")
+                        .foregroundStyle(kopi.textSoft)
                 }
-                .padding(.horizontal, Space.lg)
-                .padding(.bottom, Space.xl)
             }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
             .background(kopi.bg.ignoresSafeArea())
             .navigationTitle("Files")
             .navigationDestination(for: String.self) { id in ToolDestination(id: id) }
+            .onAppear { store.reload() }
+            .confirmationDialog("Delete \u{201C}\(pendingDelete?.name ?? "")\u{201D}?",
+                                isPresented: Binding(get: { pendingDelete != nil },
+                                                     set: { if !$0 { pendingDelete = nil } }),
+                                titleVisibility: .visible) {
+                Button("Delete", role: .destructive) {
+                    if let doc = pendingDelete { store.delete(doc) }
+                    pendingDelete = nil
+                }
+                Button("Cancel", role: .cancel) { pendingDelete = nil }
+            } message: {
+                Text("It will be removed from this phone. This can't be undone.")
+            }
         }
     }
 }
@@ -427,7 +503,7 @@ struct SettingsTab: View {
                     .listRowBackground(kopi.surface)
                 }
                 Section("Privacy") {
-                    Label("Your documents are processed on this phone and never uploaded.",
+                    Label("Your documents are processed on this phone and never uploaded. Saved scans stay on this phone.",
                           systemImage: "lock")
                         .foregroundStyle(kopi.text)
                         .listRowBackground(kopi.surface)
