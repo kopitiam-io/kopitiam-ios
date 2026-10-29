@@ -1,29 +1,256 @@
 import SwiftUI
 
-struct HomeView: View {
+// MARK: - App shell: flat, icon-only bottom bar
+//
+// The shell lives in this file (rather than new files) so the committed
+// Kopitiam.xcodeproj keeps building without regenerating it with XcodeGen.
+
+/// The five slots in the bottom bar. `scan` is an action, not a page: it opens
+/// the scanner full screen. Labels are never drawn, only read by VoiceOver.
+enum AppTab: String, CaseIterable, Identifiable {
+    case home, files, scan, tools, settings
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .home: return "Home"
+        case .files: return "Files"
+        case .scan: return "Scan"
+        case .tools: return "Tools"
+        case .settings: return "Settings"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .home: return "house"
+        case .files: return "folder"
+        case .scan: return "camera"
+        case .tools: return "square.grid.2x2"
+        case .settings: return "slider.horizontal.3"
+        }
+    }
+
+    var selectedSymbol: String {
+        switch self {
+        case .home: return "house.fill"
+        case .files: return "folder.fill"
+        case .scan: return "camera.fill"
+        case .tools: return "square.grid.2x2.fill"
+        case .settings: return "slider.horizontal.3"
+        }
+    }
+}
+
+struct MainTabView: View {
     @Environment(\.kopi) private var kopi
-    @State private var adTool: Tool?
-    private let columns = [
-        GridItem(.flexible(), spacing: Space.md),
-        GridItem(.flexible(), spacing: Space.md)
+    @State private var tab: AppTab
+    @State private var homePath: [String] = []
+    @State private var filesPath: [String] = []
+    @State private var toolsPath: [String] = []
+    @State private var showScanner = false
+
+    init() {
+        // Launch argument `-tab files|tools|settings` opens that tab first, for
+        // deterministic screenshots. No-op in normal use.
+        let args = CommandLine.arguments
+        var initial = AppTab.home
+        if let i = args.firstIndex(of: "-tab"), i + 1 < args.count,
+           let t = AppTab(rawValue: args[i + 1]), t != .scan {
+            initial = t
+        }
+        _tab = State(initialValue: initial)
+    }
+
+    /// The bar hides once a tool is pushed, so tool screens get the full height.
+    private var barHidden: Bool {
+        switch tab {
+        case .home: return !homePath.isEmpty
+        case .files: return !filesPath.isEmpty
+        case .tools: return !toolsPath.isEmpty
+        case .scan, .settings: return false
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            page(.home) {
+                HomeTab(path: $homePath, onShowAllTools: { tab = .tools })
+            }
+            page(.files) {
+                FilesTab(path: $filesPath, onScan: { showScanner = true })
+            }
+            page(.tools) {
+                ToolsTab(path: $toolsPath)
+            }
+            page(.settings) {
+                SettingsTab()
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !barHidden {
+                FlatTabBar(selected: tab, onSelect: select)
+            }
+        }
+        .fullScreenCover(isPresented: $showScanner) {
+            NavigationStack {
+                ScanDocumentView()
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showScanner = false }
+                        }
+                    }
+            }
+            .environment(\.kopi, kopi)
+            .tint(kopi.accent)
+        }
+    }
+
+    /// Every tab stays alive (keeping its scroll + navigation state); only the
+    /// selected one is visible, tappable and exposed to VoiceOver.
+    private func page<Content: View>(_ t: AppTab, @ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .opacity(tab == t ? 1 : 0)
+            .allowsHitTesting(tab == t)
+            .accessibilityHidden(tab != t)
+    }
+
+    private func select(_ t: AppTab) {
+        if t == .scan {
+            showScanner = true
+        } else if t == tab {
+            // Tapping the current tab again returns to its root.
+            switch t {
+            case .home: homePath.removeAll()
+            case .files: filesPath.removeAll()
+            case .tools: toolsPath.removeAll()
+            case .scan, .settings: break
+            }
+        } else {
+            tab = t
+        }
+    }
+}
+
+/// Edge-to-edge bar: five equal icons, a hairline on top, the active one in
+/// jade with a small dot under it.
+struct FlatTabBar: View {
+    @Environment(\.kopi) private var kopi
+    let selected: AppTab
+    let onSelect: (AppTab) -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(AppTab.allCases) { t in
+                let on = t == selected
+                Button { onSelect(t) } label: {
+                    VStack(spacing: 5) {
+                        Image(systemName: on ? t.selectedSymbol : t.symbol)
+                            .font(.system(size: 22, weight: .regular))
+                            .frame(height: 26)
+                        Circle()
+                            .fill(on ? kopi.accent : Color.clear)
+                            .frame(width: 4, height: 4)
+                    }
+                    .foregroundStyle(on ? kopi.accent : kopi.textSoft)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(t.label)
+                .accessibilityAddTraits(on ? .isSelected : [])
+            }
+        }
+        .padding(.top, 10)
+        .padding(.bottom, 2)
+        .background(kopi.surface.ignoresSafeArea(edges: .bottom))
+        .overlay(alignment: .top) {
+            Rectangle().fill(kopi.line).frame(height: 1)
+        }
+    }
+}
+
+// MARK: - Routing
+
+/// One place that maps a tool id to its screen.
+struct ToolDestination: View {
+    let id: String
+    var body: some View {
+        switch id {
+        case "edit":     EditorView()
+        case "merge":    MergeView()
+        case "split":    SplitView()
+        case "extract":  ExtractView()
+        case "compress": CompressView()
+        case "redact":   RedactView()
+        case "document": ScanDocumentView()
+        case "id-card":  ScanIDCardView()
+        case "batch":    ScanBatchView()
+        case "filters":  ScanFilterView()
+        case "refine":   PerspectiveRefineView()
+        case "ocr":      OCRExtractView()
+        case "convert":  ConvertView()
+        default:
+            if let tool = ToolRegistry.tool(id: id) {
+                ComingSoonView(tool: tool)
+            }
+        }
+    }
+}
+
+// MARK: - Home tab
+
+private struct QuickItem: Identifiable {
+    let id: String     // tool id
+    let label: String  // short label under the icon
+}
+
+struct HomeTab: View {
+    @Environment(\.kopi) private var kopi
+    @Binding var path: [String]
+    let onShowAllTools: () -> Void
+    @State private var query = ""
+
+    private let quick: [QuickItem] = [
+        QuickItem(id: "document", label: "Scan"),
+        QuickItem(id: "id-card", label: "ID Cards"),
+        QuickItem(id: "ocr", label: "Extract Text"),
+        QuickItem(id: "edit", label: "Edit PDF"),
+        QuickItem(id: "merge", label: "Merge"),
+        QuickItem(id: "compress", label: "Compress"),
+        QuickItem(id: "convert", label: "Convert"),
     ]
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: Space.xl) {
+                    VStack(alignment: .leading, spacing: Space.lg) {
                         header
-                        ForEach(ToolCategory.allCases) { category in
-                            section(for: category)
+                        ToolSearchField(text: $query)
+                        if query.trimmingCharacters(in: .whitespaces).isEmpty {
+                            LazyVGrid(columns: RoundGrid.columns, spacing: Space.md) {
+                                ForEach(quick) { item in
+                                    if let tool = ToolRegistry.tool(id: item.id) {
+                                        RoundToolButton(tool: tool, label: item.label) {
+                                            path.append(tool.id)
+                                        }
+                                    }
+                                }
+                                RoundIconButton(symbol: "square.grid.2x2", label: "All tools",
+                                                tint: kopi.brand, action: onShowAllTools)
+                            }
+                            AdSlotView(onOpenTool: { id in path.append(id) })
+                                .id("adslot")
+                        } else {
+                            ToolSearchResults(query: query) { id in path.append(id) }
                         }
-                        AdSlotView(onOpenTool: { id in adTool = ToolRegistry.tool(id: id) })
-                            .id("adslot")
                     }
                     .padding(.horizontal, Space.lg)
                     .padding(.top, Space.md)
                     .padding(.bottom, Space.xl)
                 }
+                .scrollDismissesKeyboard(.immediately)
                 .onAppear {
                     // Launch arg `-scrollToAd` jumps to the ad slot for deterministic
                     // verification screenshots. No-op in normal use.
@@ -35,35 +262,13 @@ struct HomeView: View {
                 }
             }
             .background(kopi.bg.ignoresSafeArea())
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(item: $adTool) { tool in
-                destination(for: tool)
-            }
-        }
-    }
-
-    /// Route a tool (used by the ad slot's cross-promo taps).
-    @ViewBuilder private func destination(for tool: Tool) -> some View {
-        switch tool.id {
-        case "edit":     EditorView()
-        case "merge":    MergeView()
-        case "split":    SplitView()
-        case "extract":  ExtractView()
-        case "compress": CompressView()
-        case "redact":   RedactView()
-        case "document": ScanDocumentView()
-        case "id-card":  ScanIDCardView()
-        case "batch":    ScanBatchView()
-        case "filters":  ScanFilterView()
-        case "refine":   PerspectiveRefineView()
-        case "ocr":      OCRExtractView()
-        case "convert":  ConvertView()
-        default:         ComingSoonView(tool: tool)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: String.self) { id in ToolDestination(id: id) }
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
+        VStack(alignment: .leading, spacing: Space.xs) {
             NyonyaTileBand()
                 .padding(.bottom, Space.xs)
             Text("Kopitiam")
@@ -71,65 +276,338 @@ struct HomeView: View {
                 .foregroundStyle(kopi.accent)
                 .textCase(.uppercase)
                 .kerning(1.5)
-            Text("Every PDF tool,\nfree.")
-                .font(.system(size: 44, weight: .bold, design: .default))
-                .foregroundStyle(kopi.text)
-                .lineSpacing(2)
+            (Text("Documents. ").foregroundColor(kopi.text)
+             + Text("Done here.").italic().foregroundColor(kopi.accent))
+                .font(.system(size: 36, weight: .bold, design: .serif))
                 .fixedSize(horizontal: false, vertical: true)
-            Text("A real editor and a full toolkit — right on your iPhone.")
-                .font(.title3)
-                .foregroundStyle(kopi.textSoft)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
         }
         .padding(.top, Space.sm)
     }
-
-    private func section(for category: ToolCategory) -> some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            Text(category.rawValue)
-                .font(.title2.weight(.bold))
-                .foregroundStyle(kopi.text)
-            LazyVGrid(columns: columns, spacing: Space.md) {
-                ForEach(ToolRegistry.tools(in: category)) { tool in
-                    NavCardLink(tool: tool)
-                }
-            }
-        }
-    }
 }
 
-/// A card wrapped so it push-navigates on press.
-private struct NavCardLink: View {
-    let tool: Tool
-    @State private var go = false
+// MARK: - Tools tab
+
+struct ToolsTab: View {
+    @Environment(\.kopi) private var kopi
+    @Binding var path: [String]
+    @State private var query = ""
 
     var body: some View {
-        ToolCard(tool: tool)
-            .pressable { go = true }
-            .navigationDestination(isPresented: $go) {
-                routed
+        NavigationStack(path: $path) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Space.xl) {
+                    ToolSearchField(text: $query)
+                    if query.trimmingCharacters(in: .whitespaces).isEmpty {
+                        ForEach(ToolCategory.allCases) { category in
+                            VStack(alignment: .leading, spacing: Space.md) {
+                                Text(category.rawValue)
+                                    .font(.headline)
+                                    .foregroundStyle(kopi.text)
+                                    .accessibilityAddTraits(.isHeader)
+                                LazyVGrid(columns: RoundGrid.columns, spacing: Space.md) {
+                                    ForEach(ToolRegistry.tools(in: category)) { tool in
+                                        RoundToolButton(tool: tool, label: tool.title) {
+                                            path.append(tool.id)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        ToolSearchResults(query: query) { id in path.append(id) }
+                    }
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.sm)
+                .padding(.bottom, Space.xl)
             }
-    }
-
-    @ViewBuilder private var routed: some View {
-        switch tool.id {
-        case "edit":     EditorView()
-        case "merge":    MergeView()
-        case "split":    SplitView()
-        case "extract":  ExtractView()
-        case "compress": CompressView()
-        case "redact":   RedactView()
-        case "document": ScanDocumentView()
-        case "id-card":  ScanIDCardView()
-        case "batch":    ScanBatchView()
-        case "filters":  ScanFilterView()
-        case "refine":   PerspectiveRefineView()
-        case "ocr":      OCRExtractView()
-        case "convert":  ConvertView()
-        default:         ComingSoonView(tool: tool)
+            .scrollDismissesKeyboard(.immediately)
+            .background(kopi.bg.ignoresSafeArea())
+            .navigationTitle("Tools")
+            .navigationDestination(for: String.self) { id in ToolDestination(id: id) }
         }
     }
 }
+
+// MARK: - Files tab
+
+/// Kopitiam keeps no copies of documents yet, so Files is a starting point
+/// that opens something from the phone rather than a library.
+struct FilesTab: View {
+    @Environment(\.kopi) private var kopi
+    @Binding var path: [String]
+    let onScan: () -> Void
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            ScrollView {
+                VStack(spacing: Space.lg) {
+                    VStack(spacing: Space.sm) {
+                        Image(systemName: "folder")
+                            .font(.system(size: 40, weight: .regular))
+                            .foregroundStyle(kopi.accent)
+                            .frame(width: 84, height: 84)
+                            .background(kopi.accent.opacity(0.12), in: Circle())
+                            .accessibilityHidden(true)
+                        Text("Your files stay on your phone")
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(kopi.text)
+                            .multilineTextAlignment(.center)
+                        Text("Kopitiam doesn't keep copies of your documents. Open one from your phone, or scan something new.")
+                            .font(.subheadline)
+                            .foregroundStyle(kopi.textSoft)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, Space.xl)
+
+                    VStack(spacing: 0) {
+                        FlatRow(symbol: "doc", tint: kopi.brand, title: "Open a PDF",
+                                subtitle: "Edit, sign or highlight it") { path.append("edit") }
+                        Divider().overlay(kopi.line).padding(.leading, 64)
+                        FlatRow(symbol: "photo.on.rectangle", tint: kopi.accent, title: "Turn photos into a PDF",
+                                subtitle: "Pick images from your library") { path.append("convert") }
+                        Divider().overlay(kopi.line).padding(.leading, 64)
+                        FlatRow(symbol: "camera", tint: kopi.accent, title: "Scan a document",
+                                subtitle: "Use the camera", action: onScan)
+                    }
+                    .background(kopi.surface, in: RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous).strokeBorder(kopi.line))
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, Space.xl)
+            }
+            .background(kopi.bg.ignoresSafeArea())
+            .navigationTitle("Files")
+            .navigationDestination(for: String.self) { id in ToolDestination(id: id) }
+        }
+    }
+}
+
+// MARK: - Settings tab
+
+/// Stored appearance override. "system" follows the phone.
+enum AppearanceChoice: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .system: return "Match phone"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
+struct SettingsTab: View {
+    @Environment(\.kopi) private var kopi
+    @AppStorage("appearance") private var appearance: String = AppearanceChoice.system.rawValue
+
+    private var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Appearance") {
+                    Picker("Appearance", selection: $appearance) {
+                        ForEach(AppearanceChoice.allCases) { choice in
+                            Text(choice.title).tag(choice.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(kopi.surface)
+                }
+                Section("Privacy") {
+                    Label("Your documents are processed on this phone and never uploaded.",
+                          systemImage: "lock")
+                        .foregroundStyle(kopi.text)
+                        .listRowBackground(kopi.surface)
+                }
+                Section("About") {
+                    LabeledContent("Version", value: version)
+                        .foregroundStyle(kopi.text)
+                        .listRowBackground(kopi.surface)
+                    Text("Kopitiam is free, always.")
+                        .foregroundStyle(kopi.textSoft)
+                        .listRowBackground(kopi.surface)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(kopi.bg.ignoresSafeArea())
+            .navigationTitle("Settings")
+        }
+    }
+}
+
+// MARK: - Shared shell components
+
+enum RoundGrid {
+    static let columns = Array(repeating: GridItem(.flexible(), spacing: Space.xs), count: 4)
+}
+
+/// Scale on press without hijacking the scroll gesture.
+struct PressScaleButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
+            .animation(reduceMotion ? nil : .kopiInteractive, value: configuration.isPressed)
+    }
+}
+
+/// Round tinted icon with a short label underneath (Home + Tools grids).
+struct RoundIconButton: View {
+    @Environment(\.kopi) private var kopi
+    let symbol: String
+    let label: String
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: Space.xs) {
+                Image(systemName: symbol)
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 54, height: 54)
+                    .background(tint.opacity(0.14), in: Circle())
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(kopi.text)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .top)
+        }
+        .buttonStyle(PressScaleButtonStyle())
+    }
+}
+
+/// Scan + convert tools read jade, PDF tools read kopi brown.
+struct RoundToolButton: View {
+    @Environment(\.kopi) private var kopi
+    let tool: Tool
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        RoundIconButton(symbol: tool.symbol, label: label,
+                        tint: tool.category == .pdf ? kopi.brand : kopi.accent,
+                        action: action)
+            .opacity(tool.comingSoon ? 0.6 : 1)
+    }
+}
+
+/// Flat list row: round icon, title, subtitle, chevron.
+struct FlatRow: View {
+    @Environment(\.kopi) private var kopi
+    let symbol: String
+    let tint: Color
+    let title: String
+    let subtitle: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Space.md) {
+                Image(systemName: symbol)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 36, height: 36)
+                    .background(tint.opacity(0.14), in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.body.weight(.semibold)).foregroundStyle(kopi.text)
+                    Text(subtitle).font(.footnote).foregroundStyle(kopi.textSoft)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(kopi.textSoft)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, Space.md)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct ToolSearchField: View {
+    @Environment(\.kopi) private var kopi
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: Space.sm) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(kopi.textSoft)
+                .accessibilityHidden(true)
+            TextField("Search tools, like \u{201C}Merge\u{201D}", text: $text)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .foregroundStyle(kopi.text)
+            if !text.isEmpty {
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(kopi.textSoft)
+                }
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background(kopi.surface, in: RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(kopi.line))
+    }
+}
+
+struct ToolSearchResults: View {
+    @Environment(\.kopi) private var kopi
+    let query: String
+    let onOpen: (String) -> Void
+
+    private var matches: [Tool] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        return ToolRegistry.all.filter {
+            $0.title.lowercased().contains(q) || $0.blurb.lowercased().contains(q)
+        }
+    }
+
+    var body: some View {
+        if matches.isEmpty {
+            Text("No tools match \u{201C}\(query)\u{201D}.")
+                .font(.subheadline)
+                .foregroundStyle(kopi.textSoft)
+                .frame(maxWidth: .infinity)
+                .padding(.top, Space.lg)
+        } else {
+            VStack(spacing: 0) {
+                ForEach(Array(matches.enumerated()), id: \.element.id) { index, tool in
+                    if index > 0 {
+                        Divider().overlay(kopi.line).padding(.leading, 64)
+                    }
+                    FlatRow(symbol: tool.symbol,
+                            tint: tool.category == .pdf ? kopi.brand : kopi.accent,
+                            title: tool.title, subtitle: tool.blurb) { onOpen(tool.id) }
+                }
+            }
+            .background(kopi.surface, in: RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous).strokeBorder(kopi.line))
+        }
+    }
+}
+
+// MARK: - Coming soon
 
 struct ComingSoonView: View {
     let tool: Tool
