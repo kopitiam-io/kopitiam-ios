@@ -37,6 +37,13 @@ struct RootView: View {
     private var opensConvert: Bool { CommandLine.arguments.contains("-openConvert") }
     private var opensRefine: Bool { CommandLine.arguments.contains("-openRefine") }
 
+    /// `-openScanHub scan|idCard|batch|text` opens the scan hub at that mode.
+    private var hubMode: ScanMode? {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "-openScanHub") else { return nil }
+        return i + 1 < args.count ? (ScanMode(rawValue: args[i + 1]) ?? .scan) : .scan
+    }
+
     var body: some View {
         Group {
             if opensEditor {
@@ -55,6 +62,12 @@ struct RootView: View {
                 NavigationStack { ConvertView() }
             } else if opensRefine {
                 NavigationStack { PerspectiveRefineView(autorun: true) }
+            } else if let mode = hubMode {
+                ScanHubView(mode: mode)
+            } else if CommandLine.arguments.contains("-openIDLayoutSample") {
+                NavigationStack {
+                    IDLayoutView(images: IDCardPDF.sampleCards(), onSaved: { _ in })
+                }
             } else {
                 MainTabView()
             }
