@@ -932,6 +932,11 @@ final class CardCameraModel: NSObject, ObservableObject, AVCapturePhotoCaptureDe
                 }
                 self.session.beginConfiguration()
                 if self.session.canSetSessionPreset(.photo) { self.session.sessionPreset = .photo }
+                // Keep the camera when iOS counts more than one app as in the
+                // foreground (the "multiple foreground apps" interruption).
+                let multitask = self.session.isMultitaskingCameraAccessSupported
+                if multitask { self.session.isMultitaskingCameraAccessEnabled = true }
+                self.log("multitasking camera access supported = \(multitask)")
                 guard self.session.canAddInput(input) else {
                     self.session.commitConfiguration()
                     self.fail("The camera couldn't be connected.")
