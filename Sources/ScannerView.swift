@@ -990,7 +990,7 @@ final class CardCameraModel: NSObject, ObservableObject, AVCapturePhotoCaptureDe
         case .videoDeviceInUseByAnotherClient:
             text = "Another app is using the camera. Close it and come back."
         case .videoDeviceNotAvailableWithMultipleForegroundApps:
-            text = "The camera isn't available in Split View or Slide Over. Use Kopitiam full screen."
+            text = "The camera can't be used while your iPhone is mirrored to a Mac, or in Split View on iPad. Open Kopitiam directly on the device."
         case .videoDeviceNotAvailableDueToSystemPressure:
             text = "The camera is paused because the phone is too warm. Try again in a moment."
         default:
@@ -1122,6 +1122,8 @@ struct CardCameraView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var camera = CardCameraModel()
     let onComplete: ([UIImage]) -> Void
+    /// Offered when our camera can't run: scan with Apple's scanner instead.
+    var onUseScanner: (() -> Void)? = nil
 
     @State private var captured: [UIImage] = []
     @State private var busy = false
@@ -1156,7 +1158,8 @@ struct CardCameraView: View {
                     CameraPreview(session: camera.session)
                         .ignoresSafeArea()
                     Color.black.opacity(0.6).ignoresSafeArea()
-                    message("Camera paused", reason, action: nil)
+                    message("Camera paused", reason,
+                            action: onUseScanner.map { use in ("Use the standard scanner", use) })
                 }
                 controls(guide: guide, size: geo.size)
             }
@@ -1408,10 +1411,17 @@ struct ScanHubView: View {
                     onError: { msg in camera = nil; error = msg })
                 .ignoresSafeArea()
             case .card:
-                CardCameraView { images in
-                    guard !images.isEmpty else { return }
-                    push(images: images)
-                }
+                CardCameraView(
+                    onComplete: { images in
+                        guard !images.isEmpty else { return }
+                        push(images: images)
+                    },
+                    onUseScanner: VNDocumentCameraViewController.isSupported ? {
+                        // Our camera is blocked; scan the card with Apple's scanner
+                        // instead. Swapping the item dismisses one cover and
+                        // presents the other.
+                        camera = .document
+                    } : nil)
             }
         }
         .confirmationDialog("This looks like an ID card",
@@ -1532,6 +1542,9 @@ struct ScanHubView: View {
         switch mode {
         case .text:
             recognize(images)
+        case .idCard:
+            // Reached via the standard-scanner fallback: always the ID layout.
+            push(images: Array(images.prefix(2)))
         default:
             if images.count <= 2, images.allSatisfy(IDCardPDF.looksLikeCard) {
                 cardSuggestion = images
