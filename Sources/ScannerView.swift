@@ -379,10 +379,10 @@ final class DocumentStore: ObservableObject {
     func seedSamplesIfRequested() {
         guard CommandLine.arguments.contains("-seedSamples"), documents.isEmpty else { return }
         if let sample = PDFEngine.makeSampleDocument() {
-            try? save(sample, title: "Lease agreement")
+            _ = try? save(sample, title: "Lease agreement")
         }
         if let id = try? IDCardPDF.make(images: IDCardPDF.sampleCards(), layout: .onePage, paper: .a4) {
-            try? save(id, title: Self.title("ID Card"))
+            _ = try? save(id, title: Self.title("ID Card"))
         }
     }
 }
@@ -897,7 +897,14 @@ final class CardCameraModel: NSObject, ObservableObject, AVCapturePhotoCaptureDe
         torchOn = on
         queue.async {
             guard let device = self.device, device.hasTorch else { return }
-            try? device.lockForConfiguration()
+            // Changing the torch without holding the lock crashes, so give up
+            // quietly if the camera can't be locked.
+            do {
+                try device.lockForConfiguration()
+            } catch {
+                DispatchQueue.main.async { self.torchOn = false }
+                return
+            }
             device.torchMode = on ? .on : .off
             device.unlockForConfiguration()
         }
@@ -908,8 +915,10 @@ final class CardCameraModel: NSObject, ObservableObject, AVCapturePhotoCaptureDe
     func capture(_ done: @escaping (UIImage?) -> Void) {
         completion = done
         queue.async {
-            if let connection = self.output.connection(with: .video), connection.isVideoOrientationSupported {
-                connection.videoOrientation = .portrait
+            // 90 degrees = portrait for the back camera (iOS 17 rotation API).
+            if let connection = self.output.connection(with: .video),
+               connection.isVideoRotationAngleSupported(90) {
+                connection.videoRotationAngle = 90
             }
             self.output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
         }
@@ -1232,9 +1241,13 @@ struct ScanHubView: View {
     @Environment(\.kopi) private var kopi
     @State private var mode: ScanMode
     @State private var path: [HubRoute] = []
-    @State private var showDocCamera = false
-    @State private var showCardCamera = false
+    @State private var camera: HubCamera?
     @State private var cardSuggestion: [UIImage]?
+
+    enum HubCamera: String, Identifiable {
+        case document, card
+        var id: String { rawValue }
+    }
     @State private var working = false
     @State private var error: String?
 
@@ -1260,7 +1273,7 @@ struct ScanHubView: View {
                     case .idLayout(let key):
                         IDLayoutView(images: imageSets[key] ?? [],
                                      onSaved: { doc in path.append(.document(doc.id)) },
-                                     onRetake: { path.removeAll(); showCardCamera = true })
+                                     onRetake: { path.removeAll(); camera = .card })
                     case .document(let id):
                         DocumentDetailView(documentID: id)
                     case .text(let key):
@@ -1269,17 +1282,21 @@ struct ScanHubView: View {
                 }
         }
         .tint(kopi.accent)
-        .fullScreenCover(isPresented: $showDocCamera) {
-            DocumentScanner(
-                onComplete: { images in showDocCamera = false; handleDocuments(images) },
-                onCancel: { showDocCamera = false },
-                onError: { msg in showDocCamera = false; error = msg })
-            .ignoresSafeArea()
-        }
-        .fullScreenCover(isPresented: $showCardCamera) {
-            CardCameraView { images in
-                guard !images.isEmpty else { return }
-                push(images: images)
+        // One presentation slot for both cameras. Two separate full-screen
+        // covers on the same view don't present reliably.
+        .fullScreenCover(item: $camera) { which in
+            switch which {
+            case .document:
+                DocumentScanner(
+                    onComplete: { images in camera = nil; handleDocuments(images) },
+                    onCancel: { camera = nil },
+                    onError: { msg in camera = nil; error = msg })
+                .ignoresSafeArea()
+            case .card:
+                CardCameraView { images in
+                    guard !images.isEmpty else { return }
+                    push(images: images)
+                }
             }
         }
         .confirmationDialog("This looks like an ID card",
@@ -1387,9 +1404,9 @@ struct ScanHubView: View {
     private func capture() {
         error = nil
         if mode == .idCard {
-            showCardCamera = true
+            camera = .card
         } else if VNDocumentCameraViewController.isSupported {
-            showDocCamera = true
+            camera = .document
         } else {
             error = "Scanning needs a camera, and this device doesn't have one."
         }

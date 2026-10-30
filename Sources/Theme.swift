@@ -73,33 +73,43 @@ struct KopiTheme {
 /// app background, capped by a jade grout line. The brand signature carried
 /// across the site, Reddit assets, store feature graphic, and now the app.
 struct NyonyaTileBand: View {
-    var height: CGFloat = 14
-    var tile: CGFloat = 20
+    var height: CGFloat = 18
+    var tile: CGFloat = 18
     private let jade = Color(hex: "1F6F5C")
     private let jadeDark = Color(hex: "144E40")
     private let kopiBrown = Color(hex: "C68F52")
 
     var body: some View {
         Canvas { ctx, size in
+            // Leave room for the grout line so the diamonds are never clipped.
+            let grout: CGFloat = 2
+            let h = size.height - grout - 1
             let step = tile
-            var x: CGFloat = -step
-            while x < size.width + step {
-                // brown lattice: two crossing diagonals per cell
-                var up = Path()
-                up.move(to: CGPoint(x: x, y: size.height))
-                up.addLine(to: CGPoint(x: x + step / 2, y: 0))
-                up.addLine(to: CGPoint(x: x + step, y: size.height))
-                ctx.stroke(up, with: .color(kopiBrown), lineWidth: 2)
-                // jade dot at each lattice apex
-                let dot = CGRect(x: x + step / 2 - 2, y: size.height / 2 - 2, width: 4, height: 4)
-                ctx.fill(Path(ellipseIn: dot), with: .color(jade))
-                x += step
+            let lw: CGFloat = 1.6
+            // Centre the pattern so both ends finish on a whole diamond.
+            let count = max(1, Int(size.width / step))
+            let start = (size.width - CGFloat(count) * step) / 2
+            for i in 0..<count {
+                let x = start + CGFloat(i) * step
+                let midY = h / 2 + lw / 2
+                // Full diamond: left, top, right, bottom.
+                var diamond = Path()
+                diamond.move(to: CGPoint(x: x + lw / 2, y: midY))
+                diamond.addLine(to: CGPoint(x: x + step / 2, y: lw / 2))
+                diamond.addLine(to: CGPoint(x: x + step - lw / 2, y: midY))
+                diamond.addLine(to: CGPoint(x: x + step / 2, y: h - lw / 2))
+                diamond.closeSubpath()
+                ctx.stroke(diamond, with: .color(kopiBrown), lineWidth: lw)
+                // Jade dot in the centre of each tile.
+                let r: CGFloat = 2.2
+                ctx.fill(Path(ellipseIn: CGRect(x: x + step / 2 - r, y: midY - r, width: r * 2, height: r * 2)),
+                         with: .color(jade))
             }
-            // jade grout line along the bottom edge
-            var grout = Path()
-            grout.move(to: CGPoint(x: 0, y: size.height - 1))
-            grout.addLine(to: CGPoint(x: size.width, y: size.height - 1))
-            ctx.stroke(grout, with: .color(jadeDark), lineWidth: 2)
+            // Jade grout line closing the band underneath.
+            var line = Path()
+            line.move(to: CGPoint(x: 0, y: size.height - grout / 2))
+            line.addLine(to: CGPoint(x: size.width, y: size.height - grout / 2))
+            ctx.stroke(line, with: .color(jadeDark), lineWidth: grout)
         }
         .frame(height: height)
         .accessibilityHidden(true)
