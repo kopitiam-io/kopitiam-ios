@@ -841,7 +841,13 @@ struct IDPagePreview: View {
 // MARK: - Card camera (own AVFoundation camera with a card guide)
 
 final class CardCameraModel: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate {
-    enum Status { case starting, ready, denied, unavailable }
+    enum Status: Equatable {
+        case starting, ready, denied, unavailable
+        /// Setup or the running session failed; the text is shown to the user.
+        case failed(String)
+        /// iOS paused the camera (another app is using it, a call, etc.).
+        case interrupted(String)
+    }
 
     let session = AVCaptureSession()
     @Published var status: Status = .starting
@@ -852,9 +858,40 @@ final class CardCameraModel: NSObject, ObservableObject, AVCapturePhotoCaptureDe
     private var device: AVCaptureDevice?
     private var completion: ((UIImage?) -> Void)?
     private var configured = false
+    private var observers: [NSObjectProtocol] = []
+    private var restartedAfterError = false
+
+    /// Shows in the Xcode console; filter on "KopitiamCamera".
+    private func log(_ message: String) {
+        print("[KopitiamCamera] \(message)")
+    }
+
+    override init() {
+        super.init()
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(forName: AVCaptureSession.runtimeErrorNotification,
+                                            object: session, queue: nil) { [weak self] note in
+            self?.handleRuntimeError(note)
+        })
+        observers.append(center.addObserver(forName: AVCaptureSession.wasInterruptedNotification,
+                                            object: session, queue: .main) { [weak self] note in
+            self?.handleInterruption(note)
+        })
+        observers.append(center.addObserver(forName: AVCaptureSession.interruptionEndedNotification,
+                                            object: session, queue: .main) { [weak self] _ in
+            self?.log("interruption ended")
+            if case .interrupted = self?.status { self?.status = .ready }
+        })
+    }
+
+    deinit {
+        observers.forEach { NotificationCenter.default.removeObserver($0) }
+    }
 
     func start() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        let auth = AVCaptureDevice.authorizationStatus(for: .video)
+        log("start, authorization = \(auth.rawValue)")
+        switch auth {
         case .authorized:
             configureAndRun()
         case .notDetermined:
@@ -872,25 +909,94 @@ final class CardCameraModel: NSObject, ObservableObject, AVCapturePhotoCaptureDe
         queue.async { if self.session.isRunning { self.session.stopRunning() } }
     }
 
+    private func fail(_ message: String) {
+        log("failed: \(message)")
+        DispatchQueue.main.async { self.status = .failed(message) }
+    }
+
     private func configureAndRun() {
         queue.async {
             if !self.configured {
-                guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-                      let input = try? AVCaptureDeviceInput(device: device) else {
+                guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+                        ?? AVCaptureDevice.default(for: .video) else {
+                    self.log("no camera device")
                     DispatchQueue.main.async { self.status = .unavailable }
                     return
                 }
+                let input: AVCaptureDeviceInput
+                do {
+                    input = try AVCaptureDeviceInput(device: device)
+                } catch {
+                    self.fail("Couldn't open the camera (\(error.localizedDescription)).")
+                    return
+                }
                 self.session.beginConfiguration()
-                self.session.sessionPreset = .photo
-                if self.session.canAddInput(input) { self.session.addInput(input) }
-                if self.session.canAddOutput(self.output) { self.session.addOutput(self.output) }
+                if self.session.canSetSessionPreset(.photo) { self.session.sessionPreset = .photo }
+                guard self.session.canAddInput(input) else {
+                    self.session.commitConfiguration()
+                    self.fail("The camera couldn't be connected.")
+                    return
+                }
+                self.session.addInput(input)
+                guard self.session.canAddOutput(self.output) else {
+                    self.session.commitConfiguration()
+                    self.fail("The camera couldn't be set up for photos.")
+                    return
+                }
+                self.session.addOutput(self.output)
                 self.session.commitConfiguration()
                 self.device = device
                 self.configured = true
+                self.log("configured \(device.localizedName)")
             }
             if !self.session.isRunning { self.session.startRunning() }
-            DispatchQueue.main.async { self.status = .ready }
+            if self.session.isRunning {
+                self.log("running")
+                DispatchQueue.main.async {
+                    // Don't overwrite an interruption that arrived while starting.
+                    if case .interrupted = self.status { return }
+                    self.status = .ready
+                }
+            } else if !self.session.isInterrupted {
+                self.fail("The camera didn't start. Close this screen and try again.")
+            }
         }
+    }
+
+    private func handleRuntimeError(_ note: Notification) {
+        let error = note.userInfo?[AVCaptureSessionErrorKey] as? AVError
+        log("runtime error: \(error?.localizedDescription ?? "unknown") code \(error?.code.rawValue ?? 0)")
+        queue.async {
+            // Restart once; media services resets are recoverable.
+            if !self.restartedAfterError {
+                self.restartedAfterError = true
+                self.session.startRunning()
+                if self.session.isRunning {
+                    self.log("restarted after runtime error")
+                    DispatchQueue.main.async { self.status = .ready }
+                    return
+                }
+            }
+            self.fail("The camera stopped unexpectedly. Close this screen and try again.")
+        }
+    }
+
+    private func handleInterruption(_ note: Notification) {
+        let raw = note.userInfo?[AVCaptureSessionInterruptionReasonKey] as? Int ?? -1
+        let reason = AVCaptureSession.InterruptionReason(rawValue: raw)
+        log("interrupted, reason \(raw)")
+        let text: String
+        switch reason {
+        case .videoDeviceInUseByAnotherClient:
+            text = "Another app is using the camera. Close it and come back."
+        case .videoDeviceNotAvailableWithMultipleForegroundApps:
+            text = "The camera isn't available in Split View or Slide Over. Use Kopitiam full screen."
+        case .videoDeviceNotAvailableDueToSystemPressure:
+            text = "The camera is paused because the phone is too warm. Try again in a moment."
+        default:
+            text = "The camera is paused by iOS. Close this screen and try again."
+        }
+        status = .interrupted(text)
     }
 
     func setTorch(_ on: Bool) {
@@ -996,7 +1102,9 @@ struct CameraPreview: UIViewRepresentable {
         view.backgroundColor = .black
         return view
     }
-    func updateUIView(_ view: PreviewView, context: Context) {}
+    func updateUIView(_ view: PreviewView, context: Context) {
+        if view.previewLayer.session !== session { view.previewLayer.session = session }
+    }
 }
 
 /// Fixed dark palette for the camera screens, whatever the app theme.
@@ -1042,6 +1150,13 @@ struct CardCameraView: View {
                     message("Scanning needs a camera",
                             "This device has no camera available, so ID card scanning is disabled here.",
                             action: nil)
+                case .failed(let reason):
+                    message("The camera didn't start", reason, action: ("Try again", { camera.start() }))
+                case .interrupted(let reason):
+                    CameraPreview(session: camera.session)
+                        .ignoresSafeArea()
+                    Color.black.opacity(0.6).ignoresSafeArea()
+                    message("Camera paused", reason, action: nil)
                 }
                 controls(guide: guide, size: geo.size)
             }
