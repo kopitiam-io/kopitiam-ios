@@ -62,37 +62,52 @@ struct MainTabView: View {
         _tab = State(initialValue: initial)
     }
 
-    /// The bar hides once a tool is pushed, so tool screens get the full height.
-    private var barHidden: Bool {
-        switch tab {
-        case .home: return !homePath.isEmpty
-        case .files: return !filesPath.isEmpty
-        case .tools: return !toolsPath.isEmpty
-        case .scan, .settings: return false
-        }
+    /// Selection with two special cases: picking Scan opens the scan hub
+    /// instead of switching tab, and picking the current tab again returns it
+    /// to its root.
+    private var selection: Binding<AppTab> {
+        Binding(
+            get: { tab },
+            set: { t in
+                if t == .scan {
+                    scanMode = .scan
+                } else if t == tab {
+                    switch t {
+                    case .home: homePath.removeAll()
+                    case .files: filesPath.removeAll()
+                    case .tools: toolsPath.removeAll()
+                    case .scan, .settings: break
+                    }
+                } else {
+                    tab = t
+                }
+            })
     }
 
     var body: some View {
-        ZStack {
-            page(.home) {
-                HomeTab(path: $homePath, onShowAllTools: { tab = .tools },
-                        onShowFiles: { tab = .files }, onScan: { scanMode = $0 })
-            }
-            page(.files) {
-                FilesTab(path: $filesPath, onScan: { scanMode = $0 })
-            }
-            page(.tools) {
-                ToolsTab(path: $toolsPath, onScan: { scanMode = $0 })
-            }
-            page(.settings) {
-                SettingsTab()
-            }
+        // The system tab bar: Liquid Glass on iOS 26, the standard translucent
+        // bar on earlier versions. It also sets each page's bottom inset, so
+        // every page can scroll all the way past it.
+        TabView(selection: selection) {
+            HomeTab(path: $homePath, onShowAllTools: { tab = .tools },
+                    onShowFiles: { tab = .files }, onScan: { scanMode = $0 })
+                .tabItem { tabIcon(.home) }
+                .tag(AppTab.home)
+            FilesTab(path: $filesPath, onScan: { scanMode = $0 })
+                .tabItem { tabIcon(.files) }
+                .tag(AppTab.files)
+            // Never shown: selecting it opens the scan hub (see `selection`).
+            Color.clear
+                .tabItem { tabIcon(.scan) }
+                .tag(AppTab.scan)
+            ToolsTab(path: $toolsPath, onScan: { scanMode = $0 })
+                .tabItem { tabIcon(.tools) }
+                .tag(AppTab.tools)
+            SettingsTab()
+                .tabItem { tabIcon(.settings) }
+                .tag(AppTab.settings)
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !barHidden {
-                FlatTabBar(selected: tab, onSelect: select)
-            }
-        }
+        .tint(kopi.accent)
         .fullScreenCover(item: $scanMode) { mode in
             ScanHubView(mode: mode)
                 .environment(\.kopi, kopi)
@@ -100,67 +115,11 @@ struct MainTabView: View {
         .onAppear { DocumentStore.shared.seedSamplesIfRequested() }
     }
 
-    /// Every tab stays alive (keeping its scroll + navigation state); only the
-    /// selected one is visible, tappable and exposed to VoiceOver.
-    private func page<Content: View>(_ t: AppTab, @ViewBuilder _ content: () -> Content) -> some View {
-        content()
-            .opacity(tab == t ? 1 : 0)
-            .allowsHitTesting(tab == t)
-            .accessibilityHidden(tab != t)
-    }
-
-    private func select(_ t: AppTab) {
-        if t == .scan {
-            scanMode = .scan
-        } else if t == tab {
-            // Tapping the current tab again returns to its root.
-            switch t {
-            case .home: homePath.removeAll()
-            case .files: filesPath.removeAll()
-            case .tools: toolsPath.removeAll()
-            case .scan, .settings: break
-            }
-        } else {
-            tab = t
-        }
-    }
-}
-
-/// Edge-to-edge bar: five equal icons, a hairline on top, the active one in
-/// jade with a small dot under it.
-struct FlatTabBar: View {
-    @Environment(\.kopi) private var kopi
-    let selected: AppTab
-    let onSelect: (AppTab) -> Void
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(AppTab.allCases) { t in
-                let on = t == selected
-                Button { onSelect(t) } label: {
-                    VStack(spacing: 5) {
-                        Image(systemName: on ? t.selectedSymbol : t.symbol)
-                            .font(.system(size: 22, weight: .regular))
-                            .frame(height: 26)
-                        Circle()
-                            .fill(on ? kopi.accent : Color.clear)
-                            .frame(width: 4, height: 4)
-                    }
-                    .foregroundStyle(on ? kopi.accent : kopi.textSoft)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(t.label)
-                .accessibilityAddTraits(on ? .isSelected : [])
-            }
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 2)
-        .background(kopi.surface.ignoresSafeArea(edges: .bottom))
-        .overlay(alignment: .top) {
-            Rectangle().fill(kopi.line).frame(height: 1)
-        }
+    /// Icon only. The label is still read by VoiceOver.
+    private func tabIcon(_ t: AppTab) -> some View {
+        // The system fills the selected tab's symbol automatically.
+        Image(systemName: t.symbol)
+            .accessibilityLabel(Text(t.label))
     }
 }
 
@@ -170,11 +129,15 @@ struct FlatTabBar: View {
 struct ToolDestination: View {
     let id: String
     var body: some View {
-        if id.hasPrefix(Self.docPrefix) {
-            DocumentDetailView(documentID: String(id.dropFirst(Self.docPrefix.count)))
-        } else {
-            tool
+        Group {
+            if id.hasPrefix(Self.docPrefix) {
+                DocumentDetailView(documentID: String(id.dropFirst(Self.docPrefix.count)))
+            } else {
+                tool
+            }
         }
+        // Tool and document screens get the full height, as before.
+        .toolbar(.hidden, for: .tabBar)
     }
 
     /// Navigation value for a saved document: "doc:<file name>".
@@ -286,6 +249,13 @@ struct HomeTab: View {
                 }
             }
             .background(kopi.bg.ignoresSafeArea())
+            // Solid backdrop behind the status bar, so the headline doesn't
+            // scroll up under the clock.
+            .overlay(alignment: .top) {
+                Color.clear
+                    .frame(height: 0)
+                    .background(kopi.bg.ignoresSafeArea(edges: .top))
+            }
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: String.self) { id in ToolDestination(id: id) }
         }
@@ -384,6 +354,7 @@ struct ToolsTab: View {
             .scrollDismissesKeyboard(.immediately)
             .background(kopi.bg.ignoresSafeArea())
             .navigationTitle("Tools")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: String.self) { id in ToolDestination(id: id) }
         }
     }
@@ -442,6 +413,7 @@ struct FilesTab: View {
             .scrollContentBackground(.hidden)
             .background(kopi.bg.ignoresSafeArea())
             .navigationTitle("Files")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: String.self) { id in ToolDestination(id: id) }
             .onAppear { store.reload() }
             .confirmationDialog("Delete \u{201C}\(pendingDelete?.name ?? "")\u{201D}?",
@@ -520,6 +492,7 @@ struct SettingsTab: View {
             .scrollContentBackground(.hidden)
             .background(kopi.bg.ignoresSafeArea())
             .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

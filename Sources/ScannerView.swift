@@ -1232,9 +1232,13 @@ struct ScanHubView: View {
     @Environment(\.kopi) private var kopi
     @State private var mode: ScanMode
     @State private var path: [HubRoute] = []
-    @State private var showDocCamera = false
-    @State private var showCardCamera = false
+    @State private var camera: HubCamera?
     @State private var cardSuggestion: [UIImage]?
+
+    enum HubCamera: String, Identifiable {
+        case document, card
+        var id: String { rawValue }
+    }
     @State private var working = false
     @State private var error: String?
 
@@ -1260,7 +1264,7 @@ struct ScanHubView: View {
                     case .idLayout(let key):
                         IDLayoutView(images: imageSets[key] ?? [],
                                      onSaved: { doc in path.append(.document(doc.id)) },
-                                     onRetake: { path.removeAll(); showCardCamera = true })
+                                     onRetake: { path.removeAll(); camera = .card })
                     case .document(let id):
                         DocumentDetailView(documentID: id)
                     case .text(let key):
@@ -1269,17 +1273,21 @@ struct ScanHubView: View {
                 }
         }
         .tint(kopi.accent)
-        .fullScreenCover(isPresented: $showDocCamera) {
-            DocumentScanner(
-                onComplete: { images in showDocCamera = false; handleDocuments(images) },
-                onCancel: { showDocCamera = false },
-                onError: { msg in showDocCamera = false; error = msg })
-            .ignoresSafeArea()
-        }
-        .fullScreenCover(isPresented: $showCardCamera) {
-            CardCameraView { images in
-                guard !images.isEmpty else { return }
-                push(images: images)
+        // One presentation slot for both cameras. Two separate full-screen
+        // covers on the same view don't present reliably.
+        .fullScreenCover(item: $camera) { which in
+            switch which {
+            case .document:
+                DocumentScanner(
+                    onComplete: { images in camera = nil; handleDocuments(images) },
+                    onCancel: { camera = nil },
+                    onError: { msg in camera = nil; error = msg })
+                .ignoresSafeArea()
+            case .card:
+                CardCameraView { images in
+                    guard !images.isEmpty else { return }
+                    push(images: images)
+                }
             }
         }
         .confirmationDialog("This looks like an ID card",
@@ -1387,9 +1395,9 @@ struct ScanHubView: View {
     private func capture() {
         error = nil
         if mode == .idCard {
-            showCardCamera = true
+            camera = .card
         } else if VNDocumentCameraViewController.isSupported {
-            showDocCamera = true
+            camera = .document
         } else {
             error = "Scanning needs a camera, and this device doesn't have one."
         }
