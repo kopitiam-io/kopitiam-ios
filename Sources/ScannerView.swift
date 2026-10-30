@@ -379,10 +379,10 @@ final class DocumentStore: ObservableObject {
     func seedSamplesIfRequested() {
         guard CommandLine.arguments.contains("-seedSamples"), documents.isEmpty else { return }
         if let sample = PDFEngine.makeSampleDocument() {
-            try? save(sample, title: "Lease agreement")
+            _ = try? save(sample, title: "Lease agreement")
         }
         if let id = try? IDCardPDF.make(images: IDCardPDF.sampleCards(), layout: .onePage, paper: .a4) {
-            try? save(id, title: Self.title("ID Card"))
+            _ = try? save(id, title: Self.title("ID Card"))
         }
     }
 }
@@ -897,7 +897,14 @@ final class CardCameraModel: NSObject, ObservableObject, AVCapturePhotoCaptureDe
         torchOn = on
         queue.async {
             guard let device = self.device, device.hasTorch else { return }
-            try? device.lockForConfiguration()
+            // Changing the torch without holding the lock crashes, so give up
+            // quietly if the camera can't be locked.
+            do {
+                try device.lockForConfiguration()
+            } catch {
+                DispatchQueue.main.async { self.torchOn = false }
+                return
+            }
             device.torchMode = on ? .on : .off
             device.unlockForConfiguration()
         }
@@ -908,8 +915,10 @@ final class CardCameraModel: NSObject, ObservableObject, AVCapturePhotoCaptureDe
     func capture(_ done: @escaping (UIImage?) -> Void) {
         completion = done
         queue.async {
-            if let connection = self.output.connection(with: .video), connection.isVideoOrientationSupported {
-                connection.videoOrientation = .portrait
+            // 90 degrees = portrait for the back camera (iOS 17 rotation API).
+            if let connection = self.output.connection(with: .video),
+               connection.isVideoRotationAngleSupported(90) {
+                connection.videoRotationAngle = 90
             }
             self.output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
         }
